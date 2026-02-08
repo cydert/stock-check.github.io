@@ -1,0 +1,10 @@
+- PBR,PER,ROE,BPS,EPS‚ÌŠÖŒW
+- 1Š”‚ ‚½‚è‚Ì—˜‰v:EPS Earnings Per Share
+- 1Š”‚ ‚½‚è‚Ìƒ‘Y:BPS Book-value Per Share
+
+- 1Š”‚ ‚½‚è‚Ì—˜‰v ‚Ì‰½”{‚ªŠ”‰¿‚©:PER Price Earnings Ratio
+
+- 1Š”‚ ‚½‚è‚Ìƒ‘Y‚Ì‰½”{‚ªŠ”‰¿‚©:PBR Price Book-value Ratio
+
+- 1Š”‚ ‚½‚è‚Ìƒ‘Y‚Ì‰½%‚ª1Š”‚ ‚½‚è‚Ì—˜‰v‚©(—˜‰v‚ÌŒø—¦): ROE Return On Equity
+

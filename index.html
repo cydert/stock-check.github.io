@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="jp">
+<head>
+    <meta charset="utf-8" />
+    <title>株価チェック</title>
+    <link rel="stylesheet" href="StyleSheet.css" />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="input-area">
+        <label>EPS: <input type="number" id="eps" /></label>
+        <label>BPS: <input type="number" id="bps" /></label>
+        <label>株価: <input type="number" id="price" /></label>
+        <button id="drawBtn">表示</button>
+    </div>
+
+    <div class="result-area">
+        <p>ROE: <span id="roe">-</span>%</p>
+        <p>PER：<span id="per">-</span>倍</p>
+        <p>PBR：<span id="pbr">-</span>倍</p>
+
+    </div>
+
+    <div class="chat-area">
+        <canvas id="myChart"></canvas>
+    </div>
+    <script src="Script.js"></script>
+</body>
+
+</html>
