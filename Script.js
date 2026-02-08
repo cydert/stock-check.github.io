@@ -91,31 +91,44 @@ document.getElementById("drawBtn").addEventListener("click", () => {
                         epsBar.x, epsBar.y,
                         bpsBar.x, bpsBar.y,
                         `ROE ${roe.toFixed(1)}%`,
-                        "rgba(0, 120, 255, 0.7)"
+                        "rgba(0, 120, 255, 0.7)",
+                        [],
+                        roe >= 15 ? 4 : 2 // 太さ条件
                     );
                 }
 
                 // ===== PER（EPS ↔ 株価）=====
                 if (per !== null) {
+                    const perColor =
+                        per >= 25
+                            ? "rgba(200, 0, 0, 0.9)"   //PER 25超えて高すぎ
+                            : "rgba(255, 80, 80, 0.6)";
+
                     drawLineWithLabel(
                         ctx,
                         epsBar.x, epsBar.y,
                         priceBar.x, priceBar.y,
                         `PER ${per.toFixed(1)}倍`,
-                        "rgba(255, 80, 80, 0.7)",
-                        [6, 4] // 点線
+                        perColor,
+                        [6, 4], // 点線
+                        2
                     );
                 }
 
                 // ===== PBR（BPS ↔ 株価）=====
                 if (pbr !== null) {
+                    const pbrColor =
+                        pbr < 1
+                            ? "rgba(0, 80, 200, 0.9)" //1倍割れ
+                            : "rgba(0, 180, 120, 0.7)";
                     drawLineWithLabel(
                         ctx,
                         bpsBar.x, bpsBar.y,
                         priceBar.x, priceBar.y,
                         `PBR ${pbr.toFixed(1)}倍`,
-                        "rgba(0, 180, 120, 0.7)",
-                        [2, 6] // 別パターン点線
+                        pbrColor,
+                        [2, 6], // 別パターン点線
+                        2
                     );
                 }
 
@@ -132,16 +145,17 @@ function drawLineWithLabel(
     x2, y2,
     label,
     color,
-    dash = []
+    dash = [],
+    lineWidth = 2
 ) {
-    // 線
+    //線
     ctx.save();
     ctx.beginPath();
     ctx.setLineDash(dash);
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = lineWidth;
     ctx.stroke();
     ctx.restore();
 
