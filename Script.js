@@ -38,14 +38,9 @@ document.getElementById("drawBtn").addEventListener("click", () => {
             labels: ["EPS", "BPS", "株価"],
             datasets: [
                 {
-                    label: "EPS / BPS",
-                    data: [eps, bps, null],
+                    label: "EPS / BPS / 株価",
+                    data: [eps, bps, price],
                     yAxisID: "y",
-                },
-                {
-                    label: "株価",
-                    data: [null, null, price],
-                    yAxisID: "y1",
                 }
             ]
         },
@@ -55,13 +50,7 @@ document.getElementById("drawBtn").addEventListener("click", () => {
                 y: {
                     beginAtZero: true,
                     title: {
-                        text: "EPS/BPS"
-                    }
-                },
-                y1: {
-                    position: "right",
-                    title: {
-                        text: "株価"
+                        text: "EPS/BPS/株価"
                     }
                 }
             }
@@ -72,11 +61,11 @@ document.getElementById("drawBtn").addEventListener("click", () => {
                 const { ctx } = chart;
 
                 const metaValue = chart.getDatasetMeta(0); // EPS / BPS
-                const metaPrice = chart.getDatasetMeta(1); // 株価
+                //const metaPrice = chart.getDatasetMeta(1); // 株価
 
                 const epsBar = metaValue.data[0];
                 const bpsBar = metaValue.data[1];
-                const priceBar = metaPrice.data[2];
+                const priceBar = metaValue.data[2];
 
                 if (!epsBar || !bpsBar || !priceBar) return;
 
