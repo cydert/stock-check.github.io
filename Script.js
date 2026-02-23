@@ -6,6 +6,11 @@ document.getElementById("drawBtn").addEventListener("click", () => {
     const bps = Number(document.getElementById("bps").value);
     const price = Number(document.getElementById("price").value);
 
+    // 入力値を保存
+    localStorage.setItem("eps", eps);
+    localStorage.setItem("bps", bps);
+    localStorage.setItem("price", price);
+
     if (isNaN(eps) || isNaN(bps) || isNaN(price)) {
         alert("すべて数値を入力してください");
         return;
@@ -155,3 +160,18 @@ function drawLineWithLabel(
     ctx.fillStyle = color;
     ctx.fillText(label, midX, midY - 6);
 }
+
+window.addEventListener("DOMContentLoaded", () => {
+    const eps = localStorage.getItem("eps");
+    const bps = localStorage.getItem("bps");
+    const price = localStorage.getItem("price");
+
+    if (eps !== null) document.getElementById("eps").value = eps;
+    if (bps !== null) document.getElementById("bps").value = bps;
+    if (price !== null) document.getElementById("price").value = price;
+
+    // 値が揃っていれば自動で再描画
+    if (eps !== null && bps !== null && price !== null) {
+        document.getElementById("drawBtn").click();
+    }
+});
