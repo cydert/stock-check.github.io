@@ -47,7 +47,7 @@ function calcIndicators() {
 function reverseCalcFromRoe() {
     const roe = getVal("roe");
     if (roe === null) return;
-    
+
     const bps = getVal("bps");
     const eps = getVal("eps");
 
@@ -96,9 +96,58 @@ function saveValues() {
     const eps = document.getElementById("eps").value;
     const bps = document.getElementById("bps").value;
     const price = document.getElementById("price").value;
+    const companyId = document.getElementById("companyId").value;
+    const jqCompanyName = document.getElementById("jqCompanyName").textContent;
+    const jqDate = document.getElementById("jqDate").textContent;
+
     localStorage.setItem("eps", eps);
     localStorage.setItem("bps", bps);
     localStorage.setItem("price", price);
+    localStorage.setItem("companyId", companyId);
+    localStorage.setItem("jqCompanyName", jqCompanyName);
+    localStorage.setItem("jqDate", jqDate);
+}
+
+// ==========================================
+// 認証ステータスバッジの更新
+// ==========================================
+function updateAuthStatus() {
+    const apiKey = localStorage.getItem("jqApiKey");
+
+    const statusBadge = document.getElementById("jqTokenStatus");
+    const displayArea = document.getElementById("tokenDisplayArea");
+    const logoutBtn = document.getElementById("jqLogoutBtn");
+    const loginBtn = document.getElementById("jqLoginBtn");
+    const apiKeyInput = document.getElementById("jqApiKeyInput");
+
+    if (!statusBadge) return;
+
+    if (apiKey) {
+        statusBadge.textContent = "設定済み (有効)";
+        statusBadge.classList.replace("bg-secondary", "bg-success");
+
+        if (displayArea) displayArea.style.display = "block";
+        if (logoutBtn) logoutBtn.style.display = "inline-block";
+        if (loginBtn) loginBtn.style.display = "none";
+
+        // 入力欄を無効化
+        if (apiKeyInput) apiKeyInput.disabled = true;
+
+        const displayEl = document.getElementById("jqApiTokenDisplay");
+        if (displayEl) displayEl.value = apiKey;
+    } else {
+        statusBadge.textContent = "未設定";
+        statusBadge.classList.replace("bg-success", "bg-secondary");
+
+        if (displayArea) displayArea.style.display = "none";
+        if (logoutBtn) logoutBtn.style.display = "none";
+        if (loginBtn) loginBtn.style.display = "block";
+
+        if (apiKeyInput) apiKeyInput.disabled = false;
+
+        const displayEl = document.getElementById("jqApiTokenDisplay");
+        if (displayEl) displayEl.value = "";
+    }
 }
 
 // ==========================================
@@ -108,7 +157,7 @@ function drawGraph() {
     const eps = getVal("eps");
     const bps = getVal("bps");
     const price = getVal("price");
-    
+
     if (eps === null && bps === null && price === null) return;
 
     const per = getVal("per");
@@ -236,6 +285,9 @@ function addListeners() {
     document.getElementById("bps").addEventListener("input", updateFromBase);
     document.getElementById("price").addEventListener("input", updateFromBase);
 
+    // 証券コードだけ入力したときにも保存
+    document.getElementById("companyId").addEventListener("input", saveValues);
+
     // ROE, PER, PBRの変更時（フォーカスが外れた時等）は逆算
     document.getElementById("roe").addEventListener("change", () => { reverseCalcFromRoe(); saveValues(); drawGraph(); });
     document.getElementById("per").addEventListener("change", () => { reverseCalcFromPer(); saveValues(); drawGraph(); });
@@ -247,6 +299,141 @@ function addListeners() {
         saveValues();
         drawGraph();
     });
+
+    // J-Quantsデータ取得ボタン
+    document.getElementById("fetchJquantsBtn").addEventListener("click", async () => {
+        const companyIdRaw = document.getElementById("companyId").value.trim();
+        const apiKey = localStorage.getItem("jqApiKey");
+
+        if (!companyIdRaw) {
+            alert("証券コードを入力してください");
+            return;
+        }
+
+        if (!apiKey) {
+            alert("画面右上の「設定」から、J-QuantsのAPIキーを設定してください。");
+            return;
+        }
+
+        // J-Quantsの仕様上、日本の証券コードは5桁（末尾0）が多いので4桁入力時は補完
+        const companyId = companyIdRaw.length === 4 ? companyIdRaw + "0" : companyIdRaw;
+
+        const fetchBtn = document.getElementById("fetchJquantsBtn");
+        fetchBtn.disabled = true;
+        fetchBtn.textContent = "データ取得中...";
+
+        try {
+            const headers = { "x-api-key": apiKey };
+
+            // 1. 会社名 (equities/master)
+            // 2. 株価四本値 (equities/bars/daily)
+            // 3. 財務情報 (fins/statements)
+            const [resMaster, resDaily, resFins] = await Promise.all([
+                fetch(`https://api.jquants.com/v2/equities/master?code=${companyId}`, { headers }),
+                fetch(`https://api.jquants.com/v2/equities/bars/daily?code=${companyId}`, { headers }),
+                fetch(`https://api.jquants.com/v2/fins/statements?code=${companyId}`, { headers })
+            ]);
+
+            if (!resMaster.ok) throw new Error("銘柄情報の取得に失敗しました。APIキーまたは証券コード(4桁/5桁)を確認してください。");
+            if (!resDaily.ok) throw new Error("株価データの取得に失敗しました。");
+            if (!resFins.ok) throw new Error("財務情報の取得に失敗しました。");
+
+            // --- 1. 会社情報の解析 ---
+            const dataMaster = await resMaster.json();
+            const infoArray = dataMaster.info || [];
+            if (infoArray.length === 0) {
+                throw new Error("該当する証券コードの銘柄情報が見つかりません。");
+            }
+            const companyName = infoArray[0].CompanyName;
+
+            // --- 2. 株価データの解析 ---
+            const dataDaily = await resDaily.json();
+            const dailyQuotes = dataDaily.daily_quotes || [];
+            if (dailyQuotes.length === 0) {
+                throw new Error("株価データが見つかりません。休場日や上場廃止の可能性があります。");
+            }
+            const latestQuote = dailyQuotes[dailyQuotes.length - 1]; // 配列の末尾が最新
+            const latestPrice = latestQuote.Close;
+            const quoteDateStr = latestQuote.Date;
+
+            // --- 3. 財務情報(EPS, BPS)の解析 ---
+            const dataFins = await resFins.json();
+            const statements = dataFins.statements || [];
+
+            let eps = null;
+            let bps = null;
+
+            // 最新となる配列の後ろから、値が入っているものを探す
+            for (let i = statements.length - 1; i >= 0; i--) {
+                const s = statements[i];
+                if (eps === null && s.EarningsPerShare && s.EarningsPerShare !== "") {
+                    eps = parseFloat(s.EarningsPerShare);
+                }
+                if (bps === null && s.BookValuePerShare && s.BookValuePerShare !== "") {
+                    bps = parseFloat(s.BookValuePerShare);
+                }
+                if (eps !== null && bps !== null) break;
+            }
+
+            if (eps === null || isNaN(eps)) eps = 0;
+            if (bps === null || isNaN(bps)) bps = 0;
+
+            // --- 画面へのセット ---
+            document.getElementById("jqCompanyName").textContent = companyName;
+            document.getElementById("jqDate").textContent = quoteDateStr;
+
+            document.getElementById("eps").value = eps;
+            document.getElementById("bps").value = bps;
+            document.getElementById("price").value = latestPrice;
+
+            // 更新処理をキック（状態の保存、指標の逆算、グラフ描画）
+            updateFromBase();
+
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            fetchBtn.disabled = false;
+            fetchBtn.textContent = "データを取得";
+        }
+    });
+
+    // 設定モーダルの「APIキーを保存」ボタン
+    const loginBtn = document.getElementById("jqLoginBtn");
+    if (loginBtn) {
+        loginBtn.addEventListener("click", () => {
+            const apiKeyEl = document.getElementById("jqApiKeyInput");
+            const apiKey = apiKeyEl ? apiKeyEl.value.trim() : "";
+
+            if (!apiKey) {
+                alert("APIキーを入力してください");
+                return;
+            }
+
+            // V2 は APIキーを localStorage に保存
+            localStorage.setItem("jqApiKey", apiKey);
+
+            alert("APIキーを保存しました！");
+
+            if (apiKeyEl) apiKeyEl.value = "";
+            updateAuthStatus();
+        });
+    }
+
+    // ログアウト（トークン削除）ボタン
+    const logoutBtn = document.getElementById("jqLogoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            if (confirm("保存されているAPIキーを削除しますか？")) {
+                localStorage.removeItem("jqApiKey");
+
+                const apiKeyEl = document.getElementById("jqApiKeyInput");
+                if (apiKeyEl) apiKeyEl.value = "";
+
+                updateAuthStatus();
+                alert("削除しました。");
+            }
+        });
+    }
 }
 
 // ==========================================
@@ -255,13 +442,25 @@ function addListeners() {
 window.addEventListener("DOMContentLoaded", () => {
     addListeners();
 
+    // モーダル内の認証状態バッジなどを初期表示で反映
+    updateAuthStatus();
+
     const eps = localStorage.getItem("eps");
     const bps = localStorage.getItem("bps");
     const price = localStorage.getItem("price");
 
+    // J-Quants 関連の復元
+    const companyId = localStorage.getItem("companyId");
+    const jqCompanyName = localStorage.getItem("jqCompanyName");
+    const jqDate = localStorage.getItem("jqDate");
+
     if (eps !== null && eps !== "") document.getElementById("eps").value = eps;
     if (bps !== null && bps !== "") document.getElementById("bps").value = bps;
     if (price !== null && price !== "") document.getElementById("price").value = price;
+
+    if (companyId !== null && companyId !== "") document.getElementById("companyId").value = companyId;
+    if (jqCompanyName !== null && jqCompanyName !== "") document.getElementById("jqCompanyName").textContent = jqCompanyName;
+    if (jqDate !== null && jqDate !== "") document.getElementById("jqDate").textContent = jqDate;
 
     if (eps || bps || price) {
         calcIndicators();
