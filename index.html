@@ -1,34 +1,120 @@
 <!DOCTYPE html>
-<html lang="jp">
+<html lang="ja">
 
 <head>
     <meta charset="utf-8" />
-    <title>株価チェック</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>株価指標＆逆算ツール</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="StyleSheet.css" />
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body>
-    <div class="input-area">
-        <label>EPS: <input type="number" id="eps" /></label>
-        <label>BPS: <input type="number" id="bps" /></label>
-        <label>株価: <input type="number" id="price" /></label>
-        <button id="drawBtn">表示</button>
-    </div>
+<body class="bg-light">
+    <!-- ヘッダー -->
+    <header class="bg-primary text-white py-3 mb-4">
+        <div class="container">
+            <h1 class="h4 mb-0">株価指標＆逆算ツール</h1>
+        </div>
+    </header>
 
-    <div class="result-area">
-        <p><label>ROE: <input type="number" id="roe" step="0.1" style="width:80px;" /></label> %　通常は5～8%,
-            15%以上だと超利益を回している。</p>
-        <p><label>PER: <input type="number" id="per" step="0.1" style="width:80px;" /></label>
-            倍　PER25倍以上は割高である。成長を期待されている</p>
-        <p><label>PBR: <input type="number" id="pbr" step="0.1" style="width:80px;" /></label> 倍　PBR１倍割れ
-            株価より資産の方が多いので安すぎる</p>
-    </div>
+    <main class="container">
+        <div class="row g-4 mb-4">
+            <!-- 入力エリア -->
+            <section class="col-md-12">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h2 class="h5 mb-0">基本データ</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="eps" class="form-label">EPS (円) <small
+                                    class="text-muted fw-normal ms-2">※1株当たり純利益。会社が1株あたりどれだけ利益を出しているか</small></label>
+                            <input type="number" id="eps" class="form-control" placeholder="例: 100" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="bps" class="form-label">BPS (円) <small
+                                    class="text-muted fw-normal ms-2">※1株当たり純資産。会社が解散した時に1株あたりいくら戻ってくるか</small></label>
+                            <input type="number" id="bps" class="form-control" placeholder="例: 1000" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="price" class="form-label">株価 (円) <small
+                                    class="text-muted fw-normal ms-2">※現在の実際の株価</small></label>
+                            <input type="number" id="price" class="form-control" placeholder="例: 1500" />
+                        </div>
+                        <button id="drawBtn" class="btn btn-primary w-100">計算・グラフ表示</button>
+                    </div>
+                </div>
+            </section>
 
-    <div class="chart-area">
-        <canvas id="myChart"></canvas>
-    </div>
+            <!-- 各種指標エリア -->
+            <section class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h2 class="h5 mb-0">各種指標 (逆算可能)</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">値を変更すると、基本データが自動で再計算されます。</p>
+
+                        <div class="mb-3">
+                            <label for="roe" class="form-label fw-bold">ROE (%)</label>
+                            <div class="row align-items-center">
+                                <div class="col-5">
+                                    <input type="number" id="roe" step="0.1" class="form-control" />
+                                </div>
+                                <div class="col-7 small text-muted">
+                                    目安：5～8%。<strong class="text-danger">15%以上</strong>で超高効率
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="per" class="form-label fw-bold">PER (倍)</label>
+                            <div class="row align-items-center">
+                                <div class="col-5">
+                                    <input type="number" id="per" step="0.1" class="form-control" />
+                                </div>
+                                <div class="col-7 small text-muted">
+                                    成長期待値。<strong class="text-danger">25倍以上</strong>は割高
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="pbr" class="form-label fw-bold">PBR (倍)</label>
+                            <div class="row align-items-center">
+                                <div class="col-5">
+                                    <input type="number" id="pbr" step="0.1" class="form-control" />
+                                </div>
+                                <div class="col-7 small text-muted">
+                                    <strong class="text-primary">1倍割れ</strong>は資産価値より割安
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+            <!-- グラフエリア -->
+            <section class="card mb-4 col-md-6">
+                <div class="card-header bg-white">
+                    <h2 class="h5 mb-0 text-center">指標バランス推移</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area w-100 d-flex justify-content-center">
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+
+    </main>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="Script.js"></script>
 </body>
 
