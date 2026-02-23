@@ -99,6 +99,8 @@ function saveValues() {
     const companyId = document.getElementById("companyId").value;
     const jqCompanyName = document.getElementById("jqCompanyName").textContent;
     const jqDate = document.getElementById("jqDate").textContent;
+    const jqFetchTimeEl = document.getElementById("jqFetchTime");
+    const jqFetchTime = jqFetchTimeEl ? jqFetchTimeEl.textContent : "";
 
     localStorage.setItem("eps", eps);
     localStorage.setItem("bps", bps);
@@ -106,6 +108,7 @@ function saveValues() {
     localStorage.setItem("companyId", companyId);
     localStorage.setItem("jqCompanyName", jqCompanyName);
     localStorage.setItem("jqDate", jqDate);
+    localStorage.setItem("jqFetchTime", jqFetchTime);
 }
 
 // ==========================================
@@ -323,68 +326,33 @@ function addListeners() {
         fetchBtn.textContent = "データ取得中...";
 
         try {
-            const headers = { "x-api-key": apiKey };
+            const res = await fetch(`https://jqapi.cyder.workers.dev/?code=${companyId}`, {
+                method: "GET",
+                headers: { "x-api-key": apiKey }
+            });
 
-            // 1. 会社名 (equities/master)
-            // 2. 株価四本値 (equities/bars/daily)
-            // 3. 財務情報 (fins/statements)
-            const [resMaster, resDaily, resFins] = await Promise.all([
-                fetch(`https://api.jquants.com/v2/equities/master?code=${companyId}`, { headers }),
-                fetch(`https://api.jquants.com/v2/equities/bars/daily?code=${companyId}`, { headers }),
-                fetch(`https://api.jquants.com/v2/fins/statements?code=${companyId}`, { headers })
-            ]);
+            const data = await res.json();
 
-            if (!resMaster.ok) throw new Error("銘柄情報の取得に失敗しました。APIキーまたは証券コード(4桁/5桁)を確認してください。");
-            if (!resDaily.ok) throw new Error("株価データの取得に失敗しました。");
-            if (!resFins.ok) throw new Error("財務情報の取得に失敗しました。");
-
-            // --- 1. 会社情報の解析 ---
-            const dataMaster = await resMaster.json();
-            const infoArray = dataMaster.info || [];
-            if (infoArray.length === 0) {
-                throw new Error("該当する証券コードの銘柄情報が見つかりません。");
+            if (!res.ok) {
+                // APIプロキシが返したエラーメッセージがあれば表示
+                throw new Error(data.error || "データの取得に失敗しました。");
             }
-            const companyName = infoArray[0].CompanyName;
-
-            // --- 2. 株価データの解析 ---
-            const dataDaily = await resDaily.json();
-            const dailyQuotes = dataDaily.daily_quotes || [];
-            if (dailyQuotes.length === 0) {
-                throw new Error("株価データが見つかりません。休場日や上場廃止の可能性があります。");
-            }
-            const latestQuote = dailyQuotes[dailyQuotes.length - 1]; // 配列の末尾が最新
-            const latestPrice = latestQuote.Close;
-            const quoteDateStr = latestQuote.Date;
-
-            // --- 3. 財務情報(EPS, BPS)の解析 ---
-            const dataFins = await resFins.json();
-            const statements = dataFins.statements || [];
-
-            let eps = null;
-            let bps = null;
-
-            // 最新となる配列の後ろから、値が入っているものを探す
-            for (let i = statements.length - 1; i >= 0; i--) {
-                const s = statements[i];
-                if (eps === null && s.EarningsPerShare && s.EarningsPerShare !== "") {
-                    eps = parseFloat(s.EarningsPerShare);
-                }
-                if (bps === null && s.BookValuePerShare && s.BookValuePerShare !== "") {
-                    bps = parseFloat(s.BookValuePerShare);
-                }
-                if (eps !== null && bps !== null) break;
-            }
-
-            if (eps === null || isNaN(eps)) eps = 0;
-            if (bps === null || isNaN(bps)) bps = 0;
 
             // --- 画面へのセット ---
-            document.getElementById("jqCompanyName").textContent = companyName;
-            document.getElementById("jqDate").textContent = quoteDateStr;
+            document.getElementById("jqCompanyName").textContent = data.companyName;
+            document.getElementById("jqDate").textContent = data.date;
 
-            document.getElementById("eps").value = eps;
-            document.getElementById("bps").value = bps;
-            document.getElementById("price").value = latestPrice;
+            // データ取得日時を秒単位で取得してセット (例: 2026/02/23 18:30:45)
+            const now = new Date();
+            const fetchTimeStr = now.toLocaleString("ja-JP", {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            document.getElementById("jqFetchTime").textContent = fetchTimeStr;
+
+            document.getElementById("eps").value = data.eps;
+            document.getElementById("bps").value = data.bps;
+            document.getElementById("price").value = data.price;
 
             // 更新処理をキック（状態の保存、指標の逆算、グラフ描画）
             updateFromBase();
@@ -453,6 +421,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const companyId = localStorage.getItem("companyId");
     const jqCompanyName = localStorage.getItem("jqCompanyName");
     const jqDate = localStorage.getItem("jqDate");
+    const jqFetchTime = localStorage.getItem("jqFetchTime");
 
     if (eps !== null && eps !== "") document.getElementById("eps").value = eps;
     if (bps !== null && bps !== "") document.getElementById("bps").value = bps;
@@ -461,6 +430,10 @@ window.addEventListener("DOMContentLoaded", () => {
     if (companyId !== null && companyId !== "") document.getElementById("companyId").value = companyId;
     if (jqCompanyName !== null && jqCompanyName !== "") document.getElementById("jqCompanyName").textContent = jqCompanyName;
     if (jqDate !== null && jqDate !== "") document.getElementById("jqDate").textContent = jqDate;
+    if (jqFetchTime !== null && jqFetchTime !== "") {
+        const fetchTimeEl = document.getElementById("jqFetchTime");
+        if (fetchTimeEl) fetchTimeEl.textContent = jqFetchTime;
+    }
 
     if (eps || bps || price) {
         calcIndicators();
