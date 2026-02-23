@@ -16,181 +16,153 @@
     <!-- ヘッダー -->
     <header class="bg-primary text-white py-3 mb-4">
         <div class="container d-flex justify-content-between align-items-center">
-            <h1 class="h4 mb-0">株価指標＆逆算ツール</h1>
-            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#jquantsSettingsModal">
-                ⚙️ 設定
-            </button>
+            <h1 class="h4 mb-0">株価指標確認ツール</h1>
         </div>
     </header>
 
-    <main class="container">
+    <main class="container-fluid px-4">
         <div class="row g-4 mb-4">
-            <!-- J-Quantsデータ取得エリア -->
-            <section class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-white">
-                        <h2 class="h5 mb-0">J-Quantsデータ取得</h2>
+            <!-- 左サイドバー: 履歴リスト -->
+            <aside class="col-lg-3">
+                <div class="card border-primary h-100 shadow-sm">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h2 class="h6 mb-0 fw-bold">保存リスト</h2>
+                        <button id="saveRecordBtn" class="btn btn-sm btn-light text-primary fw-bold px-2 py-0">+
+                            現在を保存</button>
                     </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="companyId" class="form-label">証券コード</label>
-                            <input type="text" id="companyId" class="form-control" placeholder="例: 7203" />
-                        </div>
-                        <button id="fetchJquantsBtn" class="btn btn-outline-primary w-100 mb-3">データを取得</button>
-
-                        <div class="mb-2 border-bottom pb-2">
-                            <span class="text-muted small">会社名:</span> <strong id="jqCompanyName">-</strong>
-                        </div>
-                        <div class="mb-2">
-                            <span class="text-muted small">データ日付:</span> <span id="jqDate">-</span>
-                        </div>
-                        <div class="mb-2">
-                            <span class="text-muted small">データ取得日時:</span> <span id="jqFetchTime">-</span>
-                        </div>
-                        <div class="mt-3 text-muted small">
-                            ※APIキーは別途指定。現在はテストデータが入力されます。
+                    <div class="card-body p-0" style="max-height: 80vh; overflow-y: auto;">
+                        <div id="historyList" class="list-group list-group-flush">
+                            <!-- JSで履歴が追加されます -->
                         </div>
                     </div>
                 </div>
-            </section>
+            </aside>
 
-            <!-- 入力エリア -->
-            <section class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-white">
-                        <h2 class="h5 mb-0">基本データ</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="eps" class="form-label">EPS (円) <small
-                                    class="text-muted fw-normal ms-2">※1株当たり純利益。会社が1株あたりどれだけ利益を出しているか</small></label>
-                            <input type="number" id="eps" class="form-control" placeholder="例: 100" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="bps" class="form-label">BPS (円) <small
-                                    class="text-muted fw-normal ms-2">※1株当たり純資産。会社が解散した時に1株あたりいくら戻ってくるか</small></label>
-                            <input type="number" id="bps" class="form-control" placeholder="例: 1000" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="price" class="form-label">株価 (円) <small
-                                    class="text-muted fw-normal ms-2">※現在の実際の株価</small></label>
-                            <input type="number" id="price" class="form-control" placeholder="例: 1500" />
-                        </div>
-                        <button id="drawBtn" class="btn btn-primary w-100">計算・グラフ表示</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 各種指標エリア -->
-            <section class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-white">
-                        <h2 class="h5 mb-0">各種指標 (逆算可能)</h2>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small">値を変更すると、基本データが自動で再計算されます。</p>
-
-                        <div class="mb-3">
-                            <label for="roe" class="form-label fw-bold">ROE (%)</label>
-                            <div class="row align-items-center">
-                                <div class="col-5">
-                                    <input type="number" id="roe" step="0.1" class="form-control" />
+            <!-- メインエリア -->
+            <div class="col-lg-9">
+                <div class="row g-4">
+                    <!-- 外部サイト（SBI証券等）検索エリア -->
+                    <section class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <h2 class="h5 mb-0">銘柄情報検索</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="companyId" class="form-label">証券コードを入力して検索</label>
+                                    <input type="text" id="companyId" class="form-control" placeholder="例: 7203" />
                                 </div>
-                                <div class="col-7 small text-muted">
-                                    目安：5～8%。<strong class="text-danger">15%以上</strong>で超高効率
+                                <div class="mb-3 border-bottom pb-3">
+                                    <label for="jqCompanyName" class="form-label text-muted small mb-1">会社名(メモ)</label>
+                                    <input type="text" id="jqCompanyName" class="form-control"
+                                        placeholder="検索した会社名等をメモできます" />
+                                </div>
+                                <p class="text-muted small">
+                                    証券コードを入力し、下のボタンを押すと別タブで各検索結果が開きます。<br>
+                                    そちらのサイトで最新のEPS、BPS、株価を確認し、右の「基本データ」に入力してください。
+                                </p>
+                                <div class="d-flex gap-2 mb-3">
+                                    <!--<button id="searchSbiBtn" class="btn btn-outline-primary flex-fill">SBI証券で検索</button>-->
+                                    <button id="searchYahooBtn"
+                                        class="btn btn-outline-danger flex-fill">Yahoo!ファイナンス</button>
                                 </div>
                             </div>
                         </div>
+                    </section>
 
-                        <div class="mb-3">
-                            <label for="per" class="form-label fw-bold">PER (倍)</label>
-                            <div class="row align-items-center">
-                                <div class="col-5">
-                                    <input type="number" id="per" step="0.1" class="form-control" />
+                    <!-- 入力エリア -->
+                    <section class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <h2 class="h5 mb-0">基本データ</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="eps" class="form-label">EPS (円) <small
+                                            class="text-muted fw-normal ms-2">※1株当たり純利益。会社が1株あたりどれだけ利益を出しているか</small></label>
+                                    <input type="number" id="eps" class="form-control" placeholder="例: 100" />
                                 </div>
-                                <div class="col-7 small text-muted">
-                                    成長期待値。<strong class="text-danger">25倍以上</strong>は割高
+                                <div class="mb-3">
+                                    <label for="bps" class="form-label">BPS (円) <small
+                                            class="text-muted fw-normal ms-2">※1株当たり純資産。会社が解散した時に1株あたりいくら戻ってくるか</small></label>
+                                    <input type="number" id="bps" class="form-control" placeholder="例: 1000" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="price" class="form-label">株価 (円) <small
+                                            class="text-muted fw-normal ms-2">※現在の実際の株価</small></label>
+                                    <input type="number" id="price" class="form-control" placeholder="例: 1500" />
+                                </div>
+                                <button id="drawBtn" class="btn btn-primary w-100">計算・グラフ表示</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 各種指標エリア -->
+                    <section class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <h2 class="h5 mb-0">各種指標</h2>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted small">値を変更すると、基本データが自動で再計算されます。</p>
+
+                                <div class="mb-3">
+                                    <label for="roe" class="form-label fw-bold">ROE (%)</label>
+                                    <div class="row align-items-center">
+                                        <div class="col-5">
+                                            <input type="number" id="roe" step="0.1" class="form-control" />
+                                        </div>
+                                        <div class="col-7 small text-muted">
+                                            目安：5～8%。<strong class="text-danger">15%以上</strong>で超高効率
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="per" class="form-label fw-bold">PER (倍)</label>
+                                    <div class="row align-items-center">
+                                        <div class="col-5">
+                                            <input type="number" id="per" step="0.1" class="form-control" />
+                                        </div>
+                                        <div class="col-7 small text-muted">
+                                            成長期待値。<strong class="text-danger">25倍以上</strong>は割高
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="pbr" class="form-label fw-bold">PBR (倍)</label>
+                                    <div class="row align-items-center">
+                                        <div class="col-5">
+                                            <input type="number" id="pbr" step="0.1" class="form-control" />
+                                        </div>
+                                        <div class="col-7 small text-muted">
+                                            <strong class="text-primary">1倍割れ</strong>は資産価値より割安
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </section>
+                    <!-- グラフエリア -->
+                    <section class="col-md-6">
+                        <div class="card h-100 mb-4">
+                            <div class="card-header bg-white">
+                                <h2 class="h5 mb-0 text-center">指標バランス推移</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-area w-100 d-flex justify-content-center">
+                                    <canvas id="myChart"></canvas>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="pbr" class="form-label fw-bold">PBR (倍)</label>
-                            <div class="row align-items-center">
-                                <div class="col-5">
-                                    <input type="number" id="pbr" step="0.1" class="form-control" />
-                                </div>
-                                <div class="col-7 small text-muted">
-                                    <strong class="text-primary">1倍割れ</strong>は資産価値より割安
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </section>
-            <!-- グラフエリア -->
-            <section class="card mb-4 col-md-6">
-                <div class="card-header bg-white">
-                    <h2 class="h5 mb-0 text-center">指標バランス推移</h2>
-                </div>
-                <div class="card-body">
-                    <div class="chart-area w-100 d-flex justify-content-center">
-                        <canvas id="myChart"></canvas>
-                    </div>
-                </div>
-            </section>
+                    </section>
+                </div> <!-- /.row.g-4 -->
+            </div> <!-- /.col-lg-9 -->
         </div>
-
 
     </main>
-
-    <!-- J-Quants 設定モーダル -->
-    <div class="modal fade" id="jquantsSettingsModal" tabindex="-1" aria-labelledby="jquantsModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="jquantsModalLabel">J-Quants 認証設定</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="small text-muted mb-4">
-                        J-Quants API (V2) を利用するための「APIキー」を入力してください。<br>
-                        取得したAPIキーはブラウザ内に保持され、データ取得時に利用されます。
-                    </p>
-
-                    <div class="mb-3">
-                        <label for="jqApiKeyInput" class="form-label">APIキー</label>
-                        <input type="text" class="form-control" id="jqApiKeyInput" placeholder="APIキーを入力">
-                    </div>
-
-                    <div class="mt-4 pt-3 border-top">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <span class="fw-bold me-2">現在の認証状態：</span>
-                                <span id="jqTokenStatus" class="badge rounded-pill bg-secondary px-3 py-2">未設定</span>
-                            </div>
-                            <button type="button" id="jqLogoutBtn" class="btn btn-outline-danger btn-sm"
-                                style="display: none;">削除する</button>
-                        </div>
-
-                        <div id="tokenDisplayArea" style="display: none;">
-                            <div class="mb-3">
-                                <label class="form-label small text-muted mb-0">保存済みAPIキー</label>
-                                <textarea id="jqApiTokenDisplay" class="form-control form-control-sm text-muted"
-                                    rows="2" readonly></textarea>
-                            </div>
-                        </div>
-
-                        <div class="text-end">
-                            <button type="button" id="jqLoginBtn" class="btn btn-primary w-100">APIキーを保存</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
